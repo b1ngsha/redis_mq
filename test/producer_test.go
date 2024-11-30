@@ -2,7 +2,7 @@ package redis_mq_test
 
 import (
 	"context"
-	"redis_mq"
+	"redis_mq/redis_mq"
 	"testing"
 )
 
@@ -13,7 +13,7 @@ const (
 	topic    = "test_topic"
 )
 
-func test_producer(t *testing.T) {
+func TestProducer(t *testing.T) {
 	client := redis_mq.NewClient(network, address, password)
 	producer := redis_mq.NewProducer(client, redis_mq.WithMaxMsgLen(10))
 	ctx := context.Background()

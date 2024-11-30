@@ -27,7 +27,7 @@ func NewClient(network, address, password string, opts ...ClientOption) *Client 
 		opt(client.opts)
 	}
 
-	repairClientOptions(client.opts)
+	repairClient(client.opts)
 
 	pool := client.getRedisPool()
 	return &Client{

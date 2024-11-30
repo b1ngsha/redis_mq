@@ -1,6 +1,8 @@
 package redis_mq
 
-import "context"
+import (
+	"context"
+)
 
 type Producer struct {
 	client *Client
