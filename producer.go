@@ -1,5 +1,7 @@
 package redis_mq
 
+import "context"
+
 type Producer struct {
 	client *Client
 	opts   *ProducerOptions
@@ -8,7 +10,7 @@ type Producer struct {
 func NewProducer(client *Client, opts ...ProducerOption) *Producer {
 	producer := Producer{
 		client: client,
-		opts: &ProducerOptions{},
+		opts:   &ProducerOptions{},
 	}
 
 	for _, opt := range opts {
@@ -20,3 +22,7 @@ func NewProducer(client *Client, opts ...ProducerOption) *Producer {
 	return &producer
 }
 
+// send message to redis topic
+func (producer *Producer) SendMsg(ctx context.Context, topic, key, val string) (string, error) {
+	return producer.client.XAdd(ctx, topic, producer.opts.maxMsgLen, key, val)
+}
