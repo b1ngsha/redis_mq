@@ -91,6 +91,10 @@ func (client *Client) XReadGroup(ctx context.Context, groupID, consumerID, topic
 	return client.xReadGroup(ctx, groupID, consumerID, topic, timeoutMiliSeconds, false)
 }
 
+func (client *Client) XReadGroupPending(ctx context.Context, groupID, consumerID, topic string) ([]*MsgEntity, error) {
+	return client.xReadGroup(ctx, groupID, consumerID, topic, 0, true)
+}
+
 // Two cases are distinguished according to the value of isPending:
 // if idPending is true,  it means consume message which was allocated to current consumer but not ack.
 // else, it means consume new message which is not consumed by any other consumer.
