@@ -5,6 +5,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/demdxx/gocast"
 	"github.com/gomodule/redigo/redis"
 )
 
@@ -84,4 +85,65 @@ func (client *Client) XAdd(ctx context.Context, topic string, maxLen int, key, v
 	defer conn.Close()
 
 	return redis.String(conn.Do("XADD", topic, "MAXLEN", maxLen, "*", key, val))
+}
+
+func (client *Client) XReadGroup(ctx context.Context, groupID, consumerID, topic string, timeoutMiliSeconds int) ([]*MsgEntity, error) {
+	return client.xReadGroup(ctx, groupID, consumerID, topic, timeoutMiliSeconds, false)
+}
+
+// Two cases are distinguished according to the value of isPending:
+// if idPending is true,  it means consume message which was allocated to current consumer but not ack.
+// else, it means consume new message which is not consumed by any other consumer.
+func (client *Client) xReadGroup(ctx context.Context, groupID, consumerID, topic string, timeoutMiliSeconds int, isPending bool) ([]*MsgEntity, error) {
+	if groupID == "" || consumerID == "" || topic == "" {
+		return nil, errors.New("redis XREADGROUP groupID, consumerID and topic con not be empty")
+	}
+
+	conn, err := client.getConn(ctx)
+	if err != nil {
+		return nil, err
+	}
+	defer conn.Close()
+
+	var rawReply interface{}
+	if isPending {
+		rawReply, err = conn.Do("XREADGROUP", "GROUP", groupID, consumerID, "STREAMS", topic, "0-0")
+	} else {
+		rawReply, err = conn.Do("XREADGROUP", "GROUP", groupID, consumerID, "BLOCK", timeoutMiliSeconds, "STREAMS", topic, ">")
+	}
+	if err != nil {
+		return nil, err
+	}
+	reply, _ := rawReply.([]interface{})
+	if len(reply) == 0 {
+		return nil, ErrNoMsg
+	}
+
+	replyItem, _ := reply[0].([]interface{})
+	if len(replyItem) != 2 {
+		return nil, errors.New("invalid msg format")
+	}
+
+	var msgs []*MsgEntity
+	rawMsgs, _ := replyItem[1].([]interface{})
+	for _, rawMsg := range rawMsgs {
+		msg, _ := rawMsg.([]interface{})
+		if len(msg) != 2 {
+			return nil, errors.New("invalid msg format")
+		}
+		msgID := gocast.ToString(msg[0])
+		msgBody, _ := msg[1].([]interface{})
+		if len(msgBody) != 2 {
+			return nil, errors.New("invalid msg format")
+		}
+		msgKey := gocast.ToString(msgBody[0])
+		msgVal := gocast.ToString(msgBody[1])
+		msgs = append(msgs, &MsgEntity{
+			MsgID: msgID,
+			Key:   msgKey,
+			Val:   msgVal,
+		})
+	}
+
+	return msgs, nil
 }
