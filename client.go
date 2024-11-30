@@ -2,6 +2,7 @@ package redis_mq
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/gomodule/redigo/redis"
@@ -69,4 +70,18 @@ func (client *Client) buildRedisConn() (redis.Conn, error) {
 	}
 
 	return redis.DialContext(context.Background(), client.opts.network, client.opts.address, dialOpts...)
+}
+
+func (client *Client) XAdd(ctx context.Context, topic string, maxLen int, key, val string) (string, error) {
+	if topic == "" {
+		return "", errors.New("redis topic can not be empty")
+	}
+
+	conn, err := client.getConn(ctx)
+	if err != nil {
+		return "", err
+	}
+	defer conn.Close()
+
+	return redis.String(conn.Do("XADD", topic, "MAXLEN", maxLen, "*", key, val))
 }
