@@ -3,6 +3,7 @@ package redis_mq
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/demdxx/gocast"
@@ -150,4 +151,24 @@ func (client *Client) xReadGroup(ctx context.Context, groupID, consumerID, topic
 	}
 
 	return msgs, nil
+}
+
+func (client *Client) XAck(ctx context.Context, topic, groupID, msgID string) error {
+	if topic == "" || groupID == "" || msgID == "" {
+		return errors.New("redis XACK topic, groupID and msgID con not be empty")
+	}
+
+	conn, err := client.pool.GetContext(ctx)
+	if err != nil {
+		return err
+	}
+
+	resp, err := redis.Int64(conn.Do("XACK", topic, groupID, msgID))
+	if err != nil {
+		return err
+	}
+	if resp != 1 {
+		return fmt.Errorf("invalid resp: %d", resp)
+	}
+	return nil
 }
