@@ -14,7 +14,6 @@ const (
 	// consumer
 	DefaultConsumeTimeout           = 2 * time.Second
 	DefaultMaxRetryLimit            = 3
-	DefaultDeadLetterQueue          = NewDeadLetterQueue()
 	DefaultDeadLetterDeliverTimeout = time.Second
 	DefaultHandleMsgsTimeout        = time.Second
 )
@@ -135,7 +134,7 @@ func repairConsumer(opts *ConsumerOptions) {
 		opts.maxRetryLimit = DefaultMaxRetryLimit
 	}
 	if opts.deadLetterQueue == nil {
-		opts.deadLetterQueue = DefaultDeadLetterQueue
+		opts.deadLetterQueue = NewDeadLetterQueueLogger()
 	}
 	if opts.deadLetterDeliverTimeout <= 0 {
 		opts.deadLetterDeliverTimeout = DefaultDeadLetterDeliverTimeout
